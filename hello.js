@@ -150,11 +150,11 @@ function getToken(context) {
             return body.access_token;
           })
           .then( function(token) {
-            ctx.storage.get(function (error, data) {
+            context.storage.get(function (error, data) {
               if (error) return error;
               data = data || {};
               data.auth0_mgmt_token = token;
-              ctx.storage.set(data, function (error) {
+              context.storage.set(data, function (error) {
                 if (error) return error;
               });
             });
