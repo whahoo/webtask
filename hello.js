@@ -123,7 +123,7 @@ app.get('/listApis', jwtCheck, function (req, res, next) {
     method: 'POST',
     url: 'https://iag-api.au.auth0.com/oauth/token',
     headers: { 'content-type': 'application/json' },
-    body: '{"client_id":"JXQgmeKgrZwz8hunzkgQo7EttyWl1hxx","client_secret":"Lt6YdCme4GsxiC89l9sS-hirmt6Wd6F5vCzNddo995cDN71-0CmKNPZIy5gmQ4Mr","audience":"https://iag-api.au.auth0.com/api/v2/","grant_type":"client_credentials"}',
+    body: {"client_id":"JXQgmeKgrZwz8hunzkgQo7EttyWl1hxx","client_secret":"Lt6YdCme4GsxiC89l9sS-hirmt6Wd6F5vCzNddo995cDN71-0CmKNPZIy5gmQ4Mr","audience":"https://iag-api.au.auth0.com/api/v2/","grant_type":"client_credentials"},
     json: true
   };
 
