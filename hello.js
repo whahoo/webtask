@@ -123,7 +123,7 @@ function getToken(context) {
     url: 'https://iag-api.au.auth0.com/oauth/token',
     headers: { 'content-type': 'application/json' },
     body: {"client_id":context.secrets.AUTH0_CLIENT_ID,
-          "client_secret": context.secrets.AUTH0.CLIENT_SECRET,
+          "client_secret": context.secrets.AUTH0_CLIENT_SECRET,
           "audience":"https://iag-api.au.auth0.com/api/v2/",
           "grant_type":"client_credentials"},
     json: true
@@ -195,7 +195,7 @@ app.get('/listConsumers', jwtCheck, function (req, res, next) {
       json: true
     }).
     then(function (resp) {
-      console.log( req );
+      //console.log( req );
       res.json( resp);
     }).
     catch(next);
