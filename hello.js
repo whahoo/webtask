@@ -135,6 +135,7 @@ function getToken() {
 
   ctx.storage.get(function (error, data) {
     if (error) return error;
+    data = data || {};
     if (data.auth0_mgmt_token != null ) {
       var storedToken = jwt.decode(data.auth0_mgmt_token);
       client.getSigningKey(storedToken.kid, (err, key) => {
