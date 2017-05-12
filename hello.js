@@ -137,8 +137,8 @@ function getToken(context) {
     if (error) reject(error);
     data = data || {};
     if (data.auth0_mgmt_token != null ) {  // If the token is there, Check it's valid
-      var storedToken = jwt.decode(data.auth0_mgmt_token);
-      jwksClient.getSigningKey(storedToken.kid, (err, key) => {  // Get the publicKey of the stored token
+      var storedToken = jwt.decode(data.auth0_mgmt_token, {complete: true});
+      jwksClient.getSigningKey(storedToken.header.kid, (err, key) => {  // Get the publicKey of the stored token
         const signingKey = key.publicKey || key.rsaPublicKey;
         jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
           if (!err) resolve(data.auth0_mgmt_token);  // return it if it's still valid
