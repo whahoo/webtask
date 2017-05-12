@@ -117,7 +117,7 @@ app.post('/addConsumer', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
-function getToken() {
+function getToken(context) {
   var options = {
     method: 'POST',
     url: 'https://iag-api.au.auth0.com/oauth/token',
