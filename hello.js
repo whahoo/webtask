@@ -128,21 +128,24 @@ function getToken() {
           "grant_type":"client_credentials"},
     json: true
   };
-  const client = jwks.jwksClient({
+  const jwksClient = jwks.jwksClient({
       strictSsl: true,
       jwksUri: 'https://iag-api.au.auth0.com/.well-known/jwks.json'
   });
 
-  ctx.storage.get(function (error, data) {
+  ctx.storage.get(function (error, data) {  // Look for Token in storage
     if (error) return error;
     data = data || {};
-    if (data.auth0_mgmt_token != null ) {
+    if (data.auth0_mgmt_token != null ) {  // If the token is there, Check it's valid
       var storedToken = jwt.decode(data.auth0_mgmt_token);
-      client.getSigningKey(storedToken.kid, (err, key) => {
+      jwksClient.getSigningKey(storedToken.kid, (err, key) => {  // Get the publicKey of the stored token
         const signingKey = key.publicKey || key.rsaPublicKey;
-        jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) {
-          if (!err) return data.auth0_mgmt_token;
-          return request(options)
+        jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
+          if (!err) return data.auth0_mgmt_token;  // return it if it's still valid
+        });
+      });
+    }
+    return request(options)   // Go get a new one if it's not valid
           .then(function(body) {
             return body.access_token;
           })
@@ -157,9 +160,6 @@ function getToken() {
             });
             return token;
           });
-        });
-      });
-    }
   });
       
     
