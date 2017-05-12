@@ -132,20 +132,20 @@ function getToken(context) {
       strictSsl: true,
       jwksUri: 'https://iag-api.au.auth0.com/.well-known/jwks.json'
   });
-
+  return new Promise( (resolve, reject) => {
   context.storage.get(function (error, data) {  // Look for Token in storage
-    if (error) return error;
+    if (error) reject(error);
     data = data || {};
     if (data.auth0_mgmt_token != null ) {  // If the token is there, Check it's valid
       var storedToken = jwt.decode(data.auth0_mgmt_token);
       jwksClient.getSigningKey(storedToken.kid, (err, key) => {  // Get the publicKey of the stored token
         const signingKey = key.publicKey || key.rsaPublicKey;
         jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
-          if (!err) return data.auth0_mgmt_token;  // return it if it's still valid
+          if (!err) resolve(data.auth0_mgmt_token);  // return it if it's still valid
         });
       });
     }
-    return request(options)   // Go get a new one if it's not valid
+    resolve( request(options)   // Go get a new one if it's not valid
           .then(function(body) {
             return body.access_token;
           })
@@ -159,9 +159,10 @@ function getToken(context) {
               });
             });
             return token;
-          });
+          })
+          );
   });
-      
+  });
     
 
 }
