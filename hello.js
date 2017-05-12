@@ -117,7 +117,31 @@ app.post('/addConsumer', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
-function getToken(context) {
+function getTokenFromStorage(context) {
+  const jwksClient = jwks({
+      strictSsl: true,
+      jwksUri: 'https://iag-api.au.auth0.com/.well-known/jwks.json'
+  });
+  
+  return new Promise( (resolve, reject) => {
+    context.storage.get(function (error, data) {  // Look for Token in storage
+      if (error) { reject(error); return; }
+      data = data || {};
+      if (data.auth0_mgmt_token == null ) { reject("No Token in storage"); return; }
+      var storedToken = jwt.decode(data.auth0_mgmt_token, {complete: true});
+      jwksClient.getSigningKey(storedToken.header.kid, (err, key) => {  // Get the publicKey of the stored token
+        if(err) { reject(err); return }
+        const signingKey = key.publicKey || key.rsaPublicKey;
+        jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
+          if (!err) { resolve(data.auth0_mgmt_token); return; }
+            reject(err); // return it if it's still valid
+          });
+        });
+    });
+  });
+}
+
+function getTokenNew(context) {
   var options = {
     method: 'POST',
     url: 'https://iag-api.au.auth0.com/oauth/token',
@@ -128,43 +152,28 @@ function getToken(context) {
           "grant_type":"client_credentials"},
     json: true
   };
-  const jwksClient = jwks({
-      strictSsl: true,
-      jwksUri: 'https://iag-api.au.auth0.com/.well-known/jwks.json'
-  });
-  return new Promise( (resolve, reject) => {
-  context.storage.get(function (error, data) {  // Look for Token in storage
-    if (error) reject(error);
-    data = data || {};
-    if (data.auth0_mgmt_token != null ) {  // If the token is there, Check it's valid
-      var storedToken = jwt.decode(data.auth0_mgmt_token, {complete: true});
-      jwksClient.getSigningKey(storedToken.header.kid, (err, key) => {  // Get the publicKey of the stored token
-        const signingKey = key.publicKey || key.rsaPublicKey;
-        jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
-          if (!err) resolve(data.auth0_mgmt_token);  // return it if it's still valid
+
+  return request(options)
+    .then(function(body) {
+      return body.access_token;
+    })
+    .then( function(token) {
+      context.storage.get(function (error, data) {
+        if (error) return error;
+        data = data || {};
+        data.auth0_mgmt_token = token;
+        context.storage.set(data, function (error) {
+          if (error) return error;
         });
       });
-    }
-    resolve( request(options)   // Go get a new one if it's not valid
-          .then(function(body) {
-            return body.access_token;
-          })
-          .then( function(token) {
-            context.storage.get(function (error, data) {
-              if (error) return error;
-              data = data || {};
-              data.auth0_mgmt_token = token;
-              context.storage.set(data, function (error) {
-                if (error) return error;
-              });
-            });
-            return token;
-          })
-          );
-  });
-  });
-    
+      return token;
+    });
+}
 
+function getToken(context) {
+  return getTokenFromStorage(context)
+        .catch(getTokenNew(context));
+  
 }
 function getAPIs(token) {
   return request(
