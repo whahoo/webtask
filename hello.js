@@ -179,7 +179,6 @@ app.get('/listApis', jwtCheck, function (req, res, next) {
 
     getToken()
     .then(getAPIs(token))
-    .catch()
     .then(function(resp) {
       res.json( resp.map(function(api) {
         return {"id": api.id,
