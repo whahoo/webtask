@@ -128,7 +128,7 @@ function getToken(context) {
           "grant_type":"client_credentials"},
     json: true
   };
-  const jwksClient = jwks.jwksClient({
+  const jwksClient = jwks.JwksClient({
       strictSsl: true,
       jwksUri: 'https://iag-api.au.auth0.com/.well-known/jwks.json'
   });
