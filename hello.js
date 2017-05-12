@@ -133,7 +133,7 @@ function getToken(context) {
       jwksUri: 'https://iag-api.au.auth0.com/.well-known/jwks.json'
   });
 
-  ctx.storage.get(function (error, data) {  // Look for Token in storage
+  context.storage.get(function (error, data) {  // Look for Token in storage
     if (error) return error;
     data = data || {};
     if (data.auth0_mgmt_token != null ) {  // If the token is there, Check it's valid
