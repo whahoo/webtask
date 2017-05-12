@@ -4,10 +4,11 @@ var request = require('request-promise');
 var wt = require('webtask-tools');
 var aws = require('aws-sdk');
 
-var jwt = require('express-jwt');
+var jwt = require('jsonwebtoken');
+var ejwt = require('express-jwt');
 var jwks = require('jwks-rsa');
 
-var jwtCheck = jwt({
+var jwtCheck = ejwt({
     secret: jwks.expressJwtSecret({
         cache: true,
         rateLimit: true,
@@ -19,7 +20,7 @@ var jwtCheck = jwt({
     algorithms: ['RS256']
 });
 
-var jwtIDCheck = jwt({
+var jwtIDCheck = ejwt({
     secret: jwks.expressJwtSecret({
         cache: true,
         rateLimit: true,
@@ -116,30 +117,68 @@ app.post('/addConsumer', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
-
-app.get('/listApis', jwtCheck, function (req, res, next) {
-
+function getToken() {
   var options = {
     method: 'POST',
     url: 'https://iag-api.au.auth0.com/oauth/token',
     headers: { 'content-type': 'application/json' },
-    body: {"client_id":"JXQgmeKgrZwz8hunzkgQo7EttyWl1hxx","client_secret":"Lt6YdCme4GsxiC89l9sS-hirmt6Wd6F5vCzNddo995cDN71-0CmKNPZIy5gmQ4Mr","audience":"https://iag-api.au.auth0.com/api/v2/","grant_type":"client_credentials"},
+    body: {"client_id":context.secrets.AUTH0_CLIENT_ID,
+          "client_secret": context.secrets.AUTH0.CLIENT_SECRET,
+          "audience":"https://iag-api.au.auth0.com/api/v2/",
+          "grant_type":"client_credentials"},
     json: true
   };
+  const client = jwks.jwksClient({
+      strictSsl: true,
+      jwksUri: 'https://iag-api.au.auth0.com/.well-known/jwks.json'
+  });
 
-    request(options)
-    .then(function(body) {
-      return body.access_token;
-    })
-    .then(function(token) {
-        return request(
+  ctx.storage.get(function (error, data) {
+    if (error) return error;
+    if (data.auth0_mgmt_token != null ) {
+      var storedToken = jwt.decode(data.auth0_mgmt_token);
+      client.getSigningKey(storedToken.kid, (err, key) => {
+        const signingKey = key.publicKey || key.rsaPublicKey;
+        jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) {
+          if (!err) return data.auth0_mgmt_token;
+          return request(options)
+          .then(function(body) {
+            return body.access_token;
+          })
+          .then( function(token) {
+            ctx.storage.get(function (error, data) {
+              if (error) return error;
+              data = data || {};
+              data.auth0_mgmt_token = token;
+              ctx.storage.set(data, function (error) {
+                if (error) return error;
+              });
+            });
+            return token;
+          });
+        });
+      });
+    }
+  });
+      
+    
+
+}
+function getAPIs(token) {
+  return request(
           {
             url: 'https://iag-api.au.auth0.com/api/v2/resource-servers',
             headers: { "Authorization": "Bearer " + token },
             json: true
           }
         );
-    })
+  
+}
+app.get('/listApis', jwtCheck, function (req, res, next) {
+
+    getToken()
+    .then(getAPIs(token))
+    .catch()
     .then(function(resp) {
       res.json( resp.map(function(api) {
         return {"id": api.id,
