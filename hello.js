@@ -75,7 +75,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
           token_endpoint_auth_method: "client_secret_post",
           app_type: "non_interactive",
           client_metadata: {
-            owner: body.sub
+            owner: body.sub + "_00"
           }
         }
       });
