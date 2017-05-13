@@ -63,7 +63,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
   })
   .then(function(body) {
     console.log(req.body);
-    getToken(req.webtaskContext)
+    return getToken(req.webtaskContext)
     .then(function(token) {
       return request.post("https://iag-api.au.auth0.com/api/v2/clients",
       {
@@ -134,13 +134,13 @@ function getTokenFromStorage(context) {
     context.storage.get(function (error, data) {  // Look for Token in storage
       if (error) { reject(error); return; }
       data = data || {};
-      console.log("storage", data.auth0_mgmt_token);
+     // console.log("storage", data.auth0_mgmt_token);
       if (data.auth0_mgmt_token == null ) { reject("No Token in storage"); return; }
       var storedToken = jwt.decode(data.auth0_mgmt_token, {complete: true});
       jwksClient.getSigningKey(storedToken.header.kid, (err, key) => {  // Get the publicKey of the stored token
         if(err) { reject(err); return }
         const signingKey = key.publicKey || key.rsaPublicKey;
-        console.log("storedToken key", signingKey);
+       // console.log("storedToken key", signingKey);
         jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
           if (!err) { resolve(data.auth0_mgmt_token); return; }
             reject(err);
@@ -165,11 +165,11 @@ function getTokenNew(context) {
 
   return request(options)
     .then(function(body) {
-      console.log( "access_token", body.access_token);
+     // console.log( "access_token", body.access_token);
       return body.access_token;
     })
     .then( function(token) {
-      console.log("token", token);
+     // console.log("token", token);
       context.storage.get(function (error, data) {
         if (error) return error;
         data = data || {};
