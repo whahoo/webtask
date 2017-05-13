@@ -179,7 +179,7 @@ function getToken(context) {
   return getTokenFromStorage(context)
         .catch(function(err) {
           console.log("no valid token in storage", err);
-          return getTokenNew(context)
+          return getTokenNew(context);
           });
   
 }
@@ -223,6 +223,13 @@ app.get('/listConsumers', jwtCheck, function (req, res, next) {
 
 app.get('/user', jwtIDCheck, function (req, res, next) {
      res.json( req.user );
+});
+
+
+app.get('/clearToken', function (req,res) {
+  req.webtaskContext.storage.set( {} , function (error) {
+          if (error) return error;
+        });
 });
 
 app.use(function(err, req, res, next) {
