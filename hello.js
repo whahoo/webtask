@@ -82,7 +82,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
       });
     })
     .then(function (resp) {
-      console.log(resp);
+      console.log(user);
       user.app_metadata.clients = user.app_metadata.clients || [];
       var clients = user.app_metadata.clients.push( { id: resp.client_id, name: resp.name } );
       
@@ -97,7 +97,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
       });
     })
     .then(function(resp){
-      console.log(resp)
+      console.log(resp);
       res.json({"result": "Client Created"});
     });
   })
