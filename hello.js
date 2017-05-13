@@ -79,21 +79,21 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
             email: user.email
           }
         }
-      });
-    })
-    .then(function (resp) {
-      console.log(user);
-      user.app_metadata.clients = user.app_metadata.clients || [];
-      var clients = user.app_metadata.clients.push( { id: resp.client_id, name: resp.name } );
+      })
+      .then(function (resp) {
+        console.log(user);
+        user.app_metadata.clients = user.app_metadata.clients || [];
+        var clients = user.app_metadata.clients.push( { id: resp.client_id, name: resp.name } );
       
-      return request({
-        method: "PATCH",
-        uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
-        headers: { "Authorization": "Bearer " + token },
-        body: {
-          app_metadata: { "clients": clients }
-        },
-        json: true
+        return request({
+          method: "PATCH",
+          uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
+          headers: { "Authorization": "Bearer " + token },
+          body: {
+            app_metadata: { "clients": clients }
+          },
+          json: true
+        });
       });
     })
     .then(function(resp){
