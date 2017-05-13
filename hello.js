@@ -66,11 +66,16 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
   })
   .then(function(body) {
      console.log(req.body);
-    return request.post("http://kong-elb-kongload-1frr8tyzpo0je-2126382179.ap-southeast-2.elb.amazonaws.com:8001/consumers/"+body.email + "/oauth2",
+    return request.post("https://iag-api.au.auth0.com/api/v2/clients",
       {
-        form: {
+        data: {
           name: req.body.appName,
-          redirect_uri: "http://127.0.0.1/"
+          description: body.email + " " + req.body.appName,
+          token_endpoint_auth_method: "client_secret_post",
+          app_type: "non_interactive",
+          client_metadata: {
+            owner: body.sub
+          }
         }
       })
       .then(function (resp) {
