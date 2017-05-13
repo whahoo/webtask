@@ -57,17 +57,18 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
 
 
 app.post('/addApplication', jwtCheck, function (req, res, next) {
-   console.log(req);
-  request.get("https://iag-api.au.auth0.com/userinfo",
-  {headers: {
-    "Authorization": req.headers.authorization
-  },
+  request.get("https://iag-api.au.auth0.com/userinfo", {
+    headers: { "Authorization": req.headers.authorization },
     json: true
   })
   .then(function(body) {
-     console.log(req.body);
-    return request.post("https://iag-api.au.auth0.com/api/v2/clients",
+    console.log(req.body);
+    getToken(req.webtaskContext)
+    .then(function(token) {
+      return request.post("https://iag-api.au.auth0.com/api/v2/clients",
       {
+        headers: { "Authorization": "Bearer " + token },
+        json: true,
         data: {
           name: req.body.appName,
           description: body.email + " " + req.body.appName,
@@ -77,10 +78,11 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
             owner: body.sub
           }
         }
-      })
-      .then(function (resp) {
-        res.json( resp);
       });
+    })
+    .then(function (resp) {
+      res.json( resp);
+    });
   })
   .catch(next);
 });
