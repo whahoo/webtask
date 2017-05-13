@@ -193,7 +193,9 @@ function getAPIs(token) {
 app.get('/listApis', jwtCheck, function (req, res, next) {
 
     getToken(req.webtaskContext)
-    .then(getAPIs(token))
+    .then(function(token) {
+      return getAPIs(token);
+      })
     .then(function(resp) {
       res.json( resp.map(function(api) {
         return {"id": api.id,
