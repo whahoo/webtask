@@ -227,7 +227,7 @@ app.get('/user', jwtIDCheck, function (req, res, next) {
 
 
 app.get('/clearToken', function (req,res) {
-  req.webtaskContext.storage.set( {} , function (error) {
+  req.webtaskContext.storage.set( {} ,{ force: 1 },  function (error) {
           if (error) return error;
           res.send("data cleared");
         });
