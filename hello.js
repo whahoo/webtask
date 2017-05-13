@@ -57,31 +57,46 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
 
 
 app.post('/addApplication', jwtCheck, function (req, res, next) {
-  request.get("https://iag-api.au.auth0.com/userinfo", {
-    headers: { "Authorization": req.headers.authorization },
-    json: true
-  })
-  .then(function(body) {
-    console.log(req.body);
-    return getToken(req.webtaskContext)
-    .then(function(token) {
+  getToken(req.webtaskContext)
+  .then(function(token) {
+    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
+        headers: { "Authorization": "Bearer " + token },
+        json: true
+    })
+    .then(function(user) {
+      console.log(req.body);
       return request.post("https://iag-api.au.auth0.com/api/v2/clients",
       {
         headers: { "Authorization": "Bearer " + token },
         json: true,
         body: {
           name: req.body.appName,
-          description: body.email + " " + req.body.appName,
+          description: user.email + " " + req.body.appName,
           token_endpoint_auth_method: "client_secret_post",
           app_type: "non_interactive",
           client_metadata: {
-            owner: body.sub + "_00"
+            owner: { id: user.user_id, email: user.email }
           }
         }
       });
     })
     .then(function (resp) {
-      res.json( resp);
+      resp.app_metadata.clients = resp.app_metadata.clients || [];
+      var clients = resp.app_metadata.clients.push( { id: resp.clients, name: resp.name } );
+      
+      return request({
+        method: "PATCH",
+        uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
+        headers: { "Authorization": "Bearer " + token },
+        body: {
+          app_metadata: { "clients": clients }
+        },
+        json: true
+      });
+    })
+    .then(function(resp){
+      console.log(resp)
+      res.json({"result": "Client Created"});
     });
   })
   .catch(next);
