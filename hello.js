@@ -36,21 +36,29 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(bodyParser.json());
 
-app.get('/getCredentials', jwtCheck, function (req, res, next) {
-  request.get("https://iag-api.au.auth0.com/userinfo",
-  {headers: {
-    "Authorization": req.headers.authorization
-  },
-    json: true
-  })
-  .then(function(body) {
-    return request.get("http://kong-elb-kongload-1frr8tyzpo0je-2126382179.ap-southeast-2.elb.amazonaws.com:8001/consumers/"+body.email + "/oauth2",
+function getClientNameAndSecret(token, client_id) {
+  return request.get("https://iag-api.au.auth0.com/api/v2/clients/" + client_id,
   {
+    headers: { "Authorization": "Bearer " + token },
+    query: { fields : "client_id,client_secret,description" },
     json: true
-  })
-  .then(function (resp) {
-    res.json( resp);
   });
+}
+
+app.get('/getCredentials', jwtCheck, function (req, res, next) {
+   getToken(req.webtaskContext)
+  .then(function(token) {
+    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
+        headers: { "Authorization": "Bearer " + token },
+        json: true
+    })
+    .then(function(user) {
+      //console.log(req.body);
+      return getClientNameAndSecret(token, user.app_metadata.client[0].id);
+    })
+    .then(function (resp) {
+      res.json( {name: resp.name, client_id: resp.client_id, client_secret: resp.client_secret});
+    });
   })
   .catch(next);
 });
@@ -64,7 +72,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
         json: true
     })
     .then(function(user) {
-      console.log(req.body);
+      //console.log(req.body);
       return request.post("https://iag-api.au.auth0.com/api/v2/clients",
       {
         headers: { "Authorization": "Bearer " + token },
@@ -81,7 +89,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
         }
       })
       .then(function (resp) {
-        console.log(user);
+        //console.log(user);
         var clients = user.app_metadata.clients || [];
         clients.push( { id: resp.client_id, name: resp.name } );
       
@@ -97,7 +105,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
       });
     })
     .then(function(resp){
-      console.log(resp);
+      //console.log(resp);
       res.json({"result": "Client Created"});
     });
   })
