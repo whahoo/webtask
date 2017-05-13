@@ -69,7 +69,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
       {
         headers: { "Authorization": "Bearer " + token },
         json: true,
-        data: {
+        body: {
           name: req.body.appName,
           description: body.email + " " + req.body.appName,
           token_endpoint_auth_method: "client_secret_post",
