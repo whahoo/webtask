@@ -177,7 +177,10 @@ function getTokenNew(context) {
 
 function getToken(context) {
   return getTokenFromStorage(context)
-        .catch(getTokenNew(context));
+        .catch(function(err) {
+          console.log("no valid token in storage", err);
+          return getTokenNew(context)
+          });
   
 }
 function getAPIs(token) {
