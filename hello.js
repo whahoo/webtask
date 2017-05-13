@@ -82,8 +82,8 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
       })
       .then(function (resp) {
         console.log(user);
-        user.app_metadata.clients = user.app_metadata.clients || [];
-        var clients = user.app_metadata.clients.push( { id: resp.client_id, name: resp.name } );
+        var clients = user.app_metadata.clients || [];
+        clients.push( { id: resp.client_id, name: resp.name } );
       
         return request({
           method: "PATCH",
