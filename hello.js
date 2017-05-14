@@ -170,7 +170,7 @@ function getTokenFromStorage(context) {
         jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
           if (!err) { resolve(data.auth0_mgmt_token); return; }
             reject(err);
-            consol.log("storedToken not valid", err);
+            console.log("storedToken not valid", err);
           });
         });
     });
