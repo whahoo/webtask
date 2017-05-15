@@ -54,11 +54,11 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
     })
     .then(function(user) {
      // console.log(user);
-      return Promise.all( user.app_metadata.clients.map( (client_id) => { return getClientNameAndSecret(token, client_id) } ) );
+      return Promise.all( user.app_metadata.clients.map( (client) => { return getClientNameAndSecret(token, client.id) } ) );
     })
     .then(function (resp) {
       console.log(resp);
-      res.json( [{name: resp.name, client_id: resp.client_id, client_secret: resp.client_secret}]);
+      res.json( resp );
     });
   })
   .catch(next);
