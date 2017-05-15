@@ -113,42 +113,43 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
-
-app.post('/getConsumer', jwtCheck, function (req, res, next) {
-  request.post("http://kong-elb-kongload-1frr8tyzpo0je-2126382179.ap-southeast-2.elb.amazonaws.com:8001/consumers/"+req.user.email,
-  {
-    form: {
-      username: req.user.email,
-      custom_id: req.user.sub
-    }
-  })
-  .then(function (resp) {
-    res.json( resp);   
-  })
-  .catch(next);
-});
-
-app.post('/addConsumer', jwtCheck, function (req, res, next) {
-  request.get("https://iag-api.au.auth0.com/userinfo",
-  {headers: {
-    "Authorization": req.headers.authorization
-  },
-    json: true
-  })
-  .then(function(body) {
-    return request.post("http://kong-elb-kongload-1frr8tyzpo0je-2126382179.ap-southeast-2.elb.amazonaws.com:8001/consumers",
+app.post('addApi', jwtCheck, function(req, res, next) {
+  getToken(req.webtaskContext)
+  .then(function(token) {
+    return request.post("https://iag-api.au.auth0.com/api/v2/clients",
       {
-        form: {
-          username: body.email,
-          custom_id: body.sub
+        headers: { "Authorization": "Bearer " + token },
+        json: true,
+        body: {
+          "name": req.body.name,
+          "identifier": req.body.endpoint,
+          "signing_alg": "RS256",
+          "token_lifetime": req.body.token_lifetime
         }
-      })
-      .then(function (resp) {
-        res.json( resp);
       });
   })
+  .then(function(resp) {
+    res.json(resp);
+  })
   .catch(next);
 });
+
+app.get('/listApis', jwtCheck, function (req, res, next) {
+
+    getToken(req.webtaskContext)
+    .then(function(token) {
+      return getAPIs(token);
+      })
+    .then(function(resp) {
+      res.json( resp.map(function(api) {
+        return {"id": api.id,
+        "name": api.name,
+        "identifier": api.identifier};
+      }));
+    })
+    .catch(next);
+});
+
 
 function getTokenFromStorage(context) {
   const jwksClient = jwks({
@@ -226,37 +227,6 @@ function getAPIs(token) {
         );
   
 }
-app.get('/listApis', jwtCheck, function (req, res, next) {
-
-    getToken(req.webtaskContext)
-    .then(function(token) {
-      return getAPIs(token);
-      })
-    .then(function(resp) {
-      res.json( resp.map(function(api) {
-        return {"id": api.id,
-        "name": api.name,
-        "identifier": api.identifier};
-      }));
-    })
-    .catch(next);
-});
-
-app.get('/listConsumers', jwtCheck, function (req, res, next) {
-
-    request.get("http://kong-elb-kongload-1frr8tyzpo0je-2126382179.ap-southeast-2.elb.amazonaws.com:8001/consumers", {
-      json: true
-    }).
-    then(function (resp) {
-      //console.log( req );
-      res.json( resp);
-    }).
-    catch(next);
-});
-
-app.get('/user', jwtIDCheck, function (req, res, next) {
-     res.json( req.user );
-});
 
 
 app.get('/clearToken', function (req,res) {
