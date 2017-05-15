@@ -122,9 +122,7 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
         json: true,
         body: {
           "name": req.body.name,
-          "identifier": req.body.endpoint,
-          "signing_alg": "RS256",
-          "token_lifetime": req.body.token_lifetime
+          "identifier": req.body.endpoint
         }
       });
   })
