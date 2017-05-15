@@ -116,13 +116,15 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
 app.post('/addApi', jwtCheck, function(req, res, next) {
   getToken(req.webtaskContext)
   .then(function(token) {
-    return request.post("https://iag-api.au.auth0.com/api/v2/clients",
+    return request.post("https://iag-api.au.auth0.com/api/v2/resource-servers",
       {
         headers: { "Authorization": "Bearer " + token },
         json: true,
         body: {
           "name": req.body.name,
-          "identifier": req.body.endpoint
+          "identifier": req.body.endpoint,
+          "signing_alg": "RS256",
+          "token_lifetime": req.body.token_lifetime
         }
       });
   })
