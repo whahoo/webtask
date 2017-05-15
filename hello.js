@@ -150,6 +150,18 @@ app.get('/listApis', jwtCheck, function (req, res, next) {
     .catch(next);
 });
 
+app.get('/user', jwtCheck, function( req,res,next) {
+  request.get('https://iag-api.au.auth0.com/userinfo',
+    {
+      headers: { "Authorization": "Bearer " + token },
+      json: true
+    }
+  )
+  .then( function(resp) {
+    res.json(resp);
+  })
+  .catch(next);
+});
 
 function getTokenFromStorage(context) {
   const jwksClient = jwks({
