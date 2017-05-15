@@ -153,7 +153,7 @@ app.get('/listApis', jwtCheck, function (req, res, next) {
 app.get('/user', jwtCheck, function( req,res,next) {
   request.get('https://iag-api.au.auth0.com/userinfo',
     {
-      headers: { "Authorization": "Bearer " + token },
+      headers: { "Authorization": "Bearer " + req.headers.authorization },
       json: true
     }
   )
