@@ -40,7 +40,7 @@ function getClientNameAndSecret(token, client_id) {
   return request.get("https://iag-api.au.auth0.com/api/v2/clients/" + client_id,
   {
     headers: { "Authorization": "Bearer " + token },
-    qs: { fields : "client_id,client_secret,description" },
+    qs: { fields : "name,client_id,client_secret,description" },
     json: true
   });
 }
