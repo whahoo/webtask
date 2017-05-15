@@ -40,7 +40,7 @@ function getClientNameAndSecret(token, client_id) {
   return request.get("https://iag-api.au.auth0.com/api/v2/clients/" + client_id,
   {
     headers: { "Authorization": "Bearer " + token },
-    query: { fields : "client_id,client_secret,description" },
+    qs: { fields : "client_id,client_secret,description" },
     json: true
   });
 }
@@ -57,7 +57,7 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
       return Promise.all( user.app_metadata.clients.map( (client) => { return getClientNameAndSecret(token, client.id) } ) );
     })
     .then(function (resp) {
-      console.log(resp);
+      //console.log(resp);
       res.json( resp );
     });
   })
