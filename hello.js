@@ -158,9 +158,12 @@ app.get('/listApis', jwtCheck, function (req, res, next) {
       })
     .then(function(resp) {
       res.json( resp.map(function(api) {
-        return {"id": api.id,
-        "name": api.name,
-        "identifier": api.identifier};
+        return {
+          "id": api.id,
+          "name": api.name,
+          "identifier": api.identifier,
+          "scopes" : api.scopes
+        };
       }));
     })
     .catch(next);
