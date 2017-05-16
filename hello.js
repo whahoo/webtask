@@ -140,7 +140,7 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
           "identifier": req.body.endpoint,
           "signing_alg": "RS256",
           "token_lifetime": req.body.token_lifetime,
-          "scopes" : req.body.scopes
+          "scopes" : req.body.scopes.map( (scope) => { return {"value": scope} })
         }
       });
   })
