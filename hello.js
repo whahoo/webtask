@@ -150,12 +150,12 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
             json: true
           })
           .then(function(resp) {
-            resp.scopes.concat(req.body.scopes.map( (scope) => { return {"value": scope} }));
+            var allscopes = resp.scopes.concat(req.body.scopes.map( (scope) => { return {"value": scope} }));
             return request({
               method:"PATCH",
               uri: "https://iag-api.au.auth0.com/api/v2/resource-servers/591a46ade6d8800cc84fdf05",
               headers: { "Authorization": "Bearer " + token },
-              body: { "scopes": resp.scopes },
+              body: { "scopes": allscopes },
               json: true
             });
         });
