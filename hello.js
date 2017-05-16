@@ -158,6 +158,7 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
               json: true
             });
         });
+      });
     })
     .then(function(resp) {
       res.json(resp);
