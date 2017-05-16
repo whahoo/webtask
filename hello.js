@@ -144,6 +144,25 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
         }
       });
   })
+  .then( function(resp) {
+    return request.get("https://iag-api.au.auth0.com/api/v2/resource-servers/p591a46ade6d8800cc84fdf05",
+      {
+        headers: { "Authorization": "Bearer " + token },
+        json: true
+      })
+      .then(function(resp) {
+        return request({
+          method:"PATCH",
+          uri: "https://iag-api.au.auth0.com/api/v2/resource-servers/p591a46ade6d8800cc84fdf05",
+          headers: { "Authorization": "Bearer " + token },
+          body: { "scopes": req.body.scopes.map( (scope) => { return {"value": scope} }) },
+          json: true
+        })
+        .then(function(resp) {
+          res.json( { "result": "added" });
+        });
+      });
+  })
   .then(function(resp) {
     res.json(resp);
   })
