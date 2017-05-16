@@ -113,6 +113,21 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
+app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
+    getToken(req.webtaskContext)
+  .then(function(token) {
+    return request.get("https://iag-api.au.auth0.com/api/v2/client-grants",
+    { headers: { "Authorization": "Bearer " + token },
+      qs : { audience: "https://api.iag.com.au/" },
+      json: true }
+    );
+  }).
+  then(function(resp) {
+      res.json ( resp.filter( (grant) => { return grant.client_id == req.params.client_id}) );
+  })
+  .catch(next);
+});
+
 app.post('/addApi', jwtCheck, function(req, res, next) {
   getToken(req.webtaskContext)
   .then(function(token) {
