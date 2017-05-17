@@ -113,6 +113,112 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
+app.post("requestGrant", jwtCheck, function(req, res, next) {
+   getToken(req.webtaskContext)
+  .then(function(token) {
+    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
+        headers: { "Authorization": "Bearer " + token },
+        json: true
+    })
+    .then(function(user) {
+      var grantsRequests = user.app_metadata.grantsRequests || [];
+      var grants = user.app_metadata.grants || [];
+      
+      if (grantsRequests.findIndex( grantReq => { 
+        grantReq.client_id === req.body.client_id &&
+        grantsReq.api_id === req.body.api_id
+      })) {
+        
+      }
+      grantsRequests.push( {
+        client_id: req.body.client_id,
+        api_id: req.body.api_id,
+        scopes: req.body.scopes,
+        id: uuid()
+      });
+      return request({
+        method: "PATCH",
+        uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
+        headers: { "Authorization": "Bearer " + token },
+        body: {
+          app_metadata: { "grantsRequests": grantsRequests }
+        },
+        json: true
+      });
+    });
+  })
+  .then(function(resp){
+    //console.log(resp);
+    res.json({"result": "Client Created"});
+  })
+  .catch(next);
+});
+
+app.post("approveGrantRequest", jwtCheck, function(req,res,next) {
+  getToken(req.webtaskContext)
+  .then(function(token) {
+    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
+        headers: { "Authorization": "Bearer " + token },
+        json: true
+    })
+    .then(function(ApprovingUser) {
+        return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.body.user_id, {
+          headers: { "Authorization": "Bearer " + token },
+          json: true
+        })
+        .then(function(RequestingUser) {
+          return request.get("https://iag-api.au.auth0.com/api/v2/resource-servers/"+ req.body.api_id, {
+            headers: { "Authorization": "Bearer " + token },
+            json: true
+          })
+          .then(function(Api) {
+            var grantReq = RequestingUser.app_metadata.grantsRequests.find( (grantReq) => grantReq.client_id == req.body.client_id);
+            if (grantReq && grantReq.api_id == req.body.api_id) {
+              var apiOwner = ApprovingUser.app_metadata.apis.find( (api) => api.id == grantReq.api_id);
+              var scopesAllowed = req.body.scopes.every( (reqScope) => {
+                Api.scopes.some( scope => { scope.value === reqScope} );
+              });
+              if ( scopesAllowed ) {
+                return request.post("https://iag-api.au.auth0.com/api/v2/client-grants/", {
+                  headers: { "Authorization": "Bearer " + token },
+                  body: {
+                    "client_id": grantReq.client_id,
+                    "audience": "https://api.iag.com.au/",
+                    "scope": req.body.scopes
+                  },
+                  json: true
+                  })
+                  .then()
+                .then(function(resp) {
+                  var grantsRequests = user.app_metadata.grantsRequests || [];
+                  var grants = user.app_metadata.grants || [];
+                  
+                  grantReq.approved = Date.now();
+                  grantReq.grant_id = resp.id;
+                  grants.push(grantReq);
+                  grantsRequests.splice(grantsRequests.findIndex( gr => grantReq.id === gr.id));
+                  return request({
+                    method: "PATCH",
+                    uri: "https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub,
+                    body: {
+                      app_metadata: {
+                        "grantsRequests": grantsRequests,
+                        "grants": grants
+                        
+                      }
+                    }
+                  });
+                });
+              }
+            }
+          });
+        });
+    });
+  })
+  .catch(next);
+});
+
+
 app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
     getToken(req.webtaskContext)
   .then(function(token) {
@@ -199,6 +305,13 @@ app.get('/user', jwtCheck, function( req,res,next) {
   .catch(next);
 });
 
+app.get('/clearToken', function (req,res) {
+  req.webtaskContext.storage.set( {} ,{ force: 1 },  function (error) {
+          if (error) return error;
+          res.send("data cleared");
+        });
+});
+
 function getTokenFromStorage(context) {
   const jwksClient = jwks({
       strictSsl: true,
@@ -265,6 +378,7 @@ function getToken(context) {
           });
   
 }
+
 function getAPIs(token) {
   return request(
           {
@@ -276,20 +390,17 @@ function getAPIs(token) {
   
 }
 
-
-app.get('/clearToken', function (req,res) {
-  req.webtaskContext.storage.set( {} ,{ force: 1 },  function (error) {
-          if (error) return error;
-          res.send("data cleared");
-        });
-});
-
 app.use(function(err, req, res, next) {
   console.log("ERROR", err);
   res.json( err.error);
 });
 
-
+function uuid() {
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+});
+}
 
 module.exports = wt.fromExpress(app);
 
