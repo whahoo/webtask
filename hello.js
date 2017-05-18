@@ -149,8 +149,6 @@ app.post("requestGrant", jwtCheck, function(req, res, next) {
   .catch(next);
 });
 
-
-
 app.post("approveGrantRequest", jwtCheck, function(req,res,next) {
   getToken(req.webtaskContext)
   .then(function(token) {
@@ -198,7 +196,6 @@ app.post("approveGrantRequest", jwtCheck, function(req,res,next) {
   })
   .catch(next);
 });
-
 
 app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
     getToken(req.webtaskContext)
@@ -257,18 +254,21 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
 app.get('/listApis', jwtCheck, function (req, res, next) {
 
     getToken(req.webtaskContext)
-    .then(function(token) {
+    .then( token => {
       return getAPIs(token);
-      })
-    .then(function(resp) {
-      res.json( resp.map(function(api) {
-        return {
-          "id": api.id,
-          "name": api.name,
-          "identifier": api.identifier,
-          "scopes" : api.scopes
-        };
-      }));
+    })
+    .then( resp => {
+      var apis = resp.filter( api => api.identifier != "https://iag-api.au.auth0.com/api/v2/");
+      res.json( 
+        apis.map( api => {
+          return {
+            "id": api.id,
+            "name": api.name,
+            "identifier": api.identifier,
+            "scopes" : api.scopes
+          };
+        })
+      );
     })
     .catch(next);
 });
