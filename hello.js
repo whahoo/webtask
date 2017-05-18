@@ -124,18 +124,26 @@ app.post("requestGrant", jwtCheck, function(req, res, next) {
       var grantsRequests = user.app_metadata.grantsRequests || [];
       var grants = user.app_metadata.grants || [];
       
-      if (grantsRequests.findIndex( grantReq => { 
-        grantReq.client_id === req.body.client_id &&
-        grantsReq.api_id === req.body.api_id
-      })) {
-        
+      var index = grants.findIndex( grant => {
+          grant.client_id === req.body.client_id && 
+          grant.api_id === req.body.api_id;
+        });
+      var newGrant = {};
+      
+      if (index) {
+        newGrant = grants[index];
+        newGrant.scopes = req.body.scopes;
       }
-      grantsRequests.push( {
-        client_id: req.body.client_id,
-        api_id: req.body.api_id,
-        scopes: req.body.scopes,
-        id: uuid()
-      });
+      else {
+         newGrant = {
+          client_id: req.body.client_id,
+          api_id: req.body.api_id,
+          scopes: req.body.scopes,
+          id: uuid()
+        };
+      }
+      grantsRequests.push(newGrant);
+      
       return request({
         method: "PATCH",
         uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
@@ -154,70 +162,76 @@ app.post("requestGrant", jwtCheck, function(req, res, next) {
   .catch(next);
 });
 
+
+
 app.post("approveGrantRequest", jwtCheck, function(req,res,next) {
   getToken(req.webtaskContext)
   .then(function(token) {
-    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
-        headers: { "Authorization": "Bearer " + token },
-        json: true
-    })
-    .then(function(ApprovingUser) {
-        return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.body.user_id, {
-          headers: { "Authorization": "Bearer " + token },
-          json: true
-        })
-        .then(function(RequestingUser) {
-          return request.get("https://iag-api.au.auth0.com/api/v2/resource-servers/"+ req.body.api_id, {
-            headers: { "Authorization": "Bearer " + token },
-            json: true
-          })
-          .then(function(Api) {
-            var grantReq = RequestingUser.app_metadata.grantsRequests.find( (grantReq) => grantReq.client_id == req.body.client_id);
-            if (grantReq && grantReq.api_id == req.body.api_id) {
-              var apiOwner = ApprovingUser.app_metadata.apis.find( (api) => api.id == grantReq.api_id);
-              var scopesAllowed = req.body.scopes.every( (reqScope) => {
-                Api.scopes.some( scope => { scope.value === reqScope} );
-              });
-              if ( scopesAllowed ) {
-                return request.post("https://iag-api.au.auth0.com/api/v2/client-grants/", {
-                  headers: { "Authorization": "Bearer " + token },
-                  body: {
-                    "client_id": grantReq.client_id,
-                    "audience": "https://api.iag.com.au/",
-                    "scope": req.body.scopes
-                  },
-                  json: true
-                  })
-                  .then()
-                .then(function(resp) {
-                  var grantsRequests = user.app_metadata.grantsRequests || [];
-                  var grants = user.app_metadata.grants || [];
-                  
-                  grantReq.approved = Date.now();
-                  grantReq.grant_id = resp.id;
-                  grants.push(grantReq);
-                  grantsRequests.splice(grantsRequests.findIndex( gr => grantReq.id === gr.id));
-                  return request({
-                    method: "PATCH",
-                    uri: "https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub,
-                    body: {
-                      app_metadata: {
-                        "grantsRequests": grantsRequests,
-                        "grants": grants
-                        
-                      }
-                    }
-                  });
-                });
-              }
-            }
-          });
+    return Promise.all([ getUser(req.user.sub), getUser(req.body.user_id), getAPI(req.body.api_id) ])
+      .then( responses => {
+        var ApprovingUser = responses[0];
+        var RequestingUser = responses[1];
+        var Api = responses[2];
+    // Does the requesting user have and active grantRequest that matches this approval request
+        var grantsRequests = RequestingUser.app_metadata.grantsRequests || [];
+        var grants = RequestingUser.app_metadata.grants || [];
+        var grantReq = grantsRequests.find( (grantReq) => grantReq.client_id === req.body.client_id && grantReq.api_id === req.body.api_id);
+    // Check to see if the ApprovingUser is an owner of this API
+        var ownerApis = ApprovingUser.app_metadata.apis || [];
+        var apiOwner = ownerApis.find( (api) => api.id === grantReq.api_id);
+        if (!grantReq) return Promise.reject({"result":"Grant Not found"});
+        if (!apiOwner) return Promise.reject({"result":"Not Api Owner"});
+        // Check the scopes requested are available on the API
+        var scopesAllowed = grantReq.scopes.every( (reqScope) => {
+          Api.scopes.some( scope => { scope.value === reqScope} );
         });
+        if ( scopesAllowed ) { // If this is a Scope Update scopes for this or other apis already exist
+          if ( grantReq.grant_id ) {
+            return getClientGrant(token, grantReq.grant_id)
+              .then( resp => {
+                return patchClientGrant(token, grantReq.grant_id, scopes);
+              })
+              .then( resp => {
+                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantRequests, grants, grantReq);
+              });
+          }
+          else { // Create the Client Grant if this is the first time
+            return createClientGrant(token, grantReq.client_id, grantReq.scopes, "https://api.iag.com.au/" )
+              .then( resp => {
+                grantReq.grant_id = resp.id; // add Client Grant Id to grant 
+                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantRequests, grants, grantReq);
+            });
+          }
+        }
+        return { "result": "Grant Created" };
     });
+  })
+  .then( resp => {
+    res.json( resp )
   })
   .catch(next);
 });
 
+function updateUserMetaDataGrants(token, user_id, grantRequests, grants, newGrant) {
+  //Delete request from array
+  grantsRequests.splice(grantsRequests.findIndex( gr => newGrant.id === gr.id), 1);
+  //Add it to approved grants
+  newGrant.approved = Date.now();
+  grants.push(newGrant);
+                  
+  return request({
+    method: "PATCH",
+    headers: { "Authorization": "Bearer " + token },
+    uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user_id,
+    body: {
+      app_metadata: {
+        "grantsRequests": grantsRequests,
+        "grants": grants
+      }
+    },
+    json: true
+  });
+}
 
 app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
     getToken(req.webtaskContext)
@@ -388,6 +402,56 @@ function getAPIs(token) {
           }
         );
   
+}
+
+function getAPI(token, api_id) {
+  return request(
+          {
+            method: "GET",
+            url: 'https://iag-api.au.auth0.com/api/v2/resource-servers/' + api_id,
+            headers: { "Authorization": "Bearer " + token },
+            json: true
+          }
+        );
+  
+}
+
+function getUser(token, user_id) {
+  return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ user_id, {
+        headers: { "Authorization": "Bearer " + token },
+        json: true
+    })
+}
+
+function getClientGrant(token, grant_id) {
+  return request.get("https://iag-api.au.auth0.com/api/v2/client-grants/" + grant_id, {
+        headers: { "Authorization": "Bearer " + token },
+        json: true
+        });
+}
+
+function patchClientGrant(token, grant_id, scopes) {
+  return request({
+        method: "PATCH",
+        uri: "https://iag-api.au.auth0.com/api/v2/client-grants/" + grant_id,
+        headers: { "Authorization": "Bearer " + token },
+        body: {
+          "scope": scopes
+        },
+        json: true
+      });
+}
+
+function createClientGrant(token, client_id, scopes, audience) {
+  return request.post("https://iag-api.au.auth0.com/api/v2/client-grants/", {
+         headers: { "Authorization": "Bearer " + token },
+         body: {
+          "client_id": client_id,
+          "audience": audience,
+          "scope": scopes
+        },
+        json: true
+  });
 }
 
 app.use(function(err, req, res, next) {
