@@ -64,7 +64,6 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
-
 app.post('/addApplication', jwtCheck, function (req, res, next) {
   getToken(req.webtaskContext)
   .then(function(token) {
@@ -116,25 +115,22 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
 app.post("requestGrant", jwtCheck, function(req, res, next) {
    getToken(req.webtaskContext)
   .then(function(token) {
-    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
-        headers: { "Authorization": "Bearer " + token },
-        json: true
-    })
-    .then(function(user) {
+    return getUser(token, req.user.sub)
+    .then( user => {
       var grantsRequests = user.app_metadata.grantsRequests || [];
       var grants = user.app_metadata.grants || [];
-      
+      //does this client grant exist?
       var index = grants.findIndex( grant => {
           grant.client_id === req.body.client_id && 
           grant.api_id === req.body.api_id;
         });
       var newGrant = {};
       
-      if (index) {
+      if (index) { // use existing grant as the request object and update the scopes
         newGrant = grants[index];
         newGrant.scopes = req.body.scopes;
       }
-      else {
+      else { // create a new grant
          newGrant = {
           client_id: req.body.client_id,
           api_id: req.body.api_id,
@@ -144,19 +140,10 @@ app.post("requestGrant", jwtCheck, function(req, res, next) {
       }
       grantsRequests.push(newGrant);
       
-      return request({
-        method: "PATCH",
-        uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
-        headers: { "Authorization": "Bearer " + token },
-        body: {
-          app_metadata: { "grantsRequests": grantsRequests }
-        },
-        json: true
-      });
+      return updateUserMetaDataGrantRequests( token, user.user_id, grantsRequests );
     });
   })
-  .then(function(resp){
-    //console.log(resp);
+  .then( resp => {
     res.json({"result": "Client Created"});
   })
   .catch(next);
@@ -207,31 +194,11 @@ app.post("approveGrantRequest", jwtCheck, function(req,res,next) {
     });
   })
   .then( resp => {
-    res.json( resp )
+    res.json( resp );
   })
   .catch(next);
 });
 
-function updateUserMetaDataGrants(token, user_id, grantRequests, grants, newGrant) {
-  //Delete request from array
-  grantsRequests.splice(grantsRequests.findIndex( gr => newGrant.id === gr.id), 1);
-  //Add it to approved grants
-  newGrant.approved = Date.now();
-  grants.push(newGrant);
-                  
-  return request({
-    method: "PATCH",
-    headers: { "Authorization": "Bearer " + token },
-    uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user_id,
-    body: {
-      app_metadata: {
-        "grantsRequests": grantsRequests,
-        "grants": grants
-      }
-    },
-    json: true
-  });
-}
 
 app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
     getToken(req.webtaskContext)
@@ -451,6 +418,39 @@ function createClientGrant(token, client_id, scopes, audience) {
           "scope": scopes
         },
         json: true
+  });
+}
+
+function updateUserMetaDataGrantRequests(token, user_id, grantRequests) {
+  return request({
+        method: "PATCH",
+        headers: { "Authorization": "Bearer " + token },
+        uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user_id,
+        body: {
+          app_metadata: { "grantsRequests": grantsRequests }
+        },
+        json: true
+      });
+}
+
+function updateUserMetaDataGrants(token, user_id, grantRequests, grants, newGrant) {
+  //Delete request from array
+  grantsRequests.splice(grantsRequests.findIndex( gr => newGrant.id === gr.id), 1);
+  //Add it to approved grants
+  newGrant.approved = Date.now();
+  grants.push(newGrant);
+                  
+  return request({
+    method: "PATCH",
+    headers: { "Authorization": "Bearer " + token },
+    uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user_id,
+    body: {
+      app_metadata: {
+        "grantsRequests": grantsRequests,
+        "grants": grants
+      }
+    },
+    json: true
   });
 }
 
