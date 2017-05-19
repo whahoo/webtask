@@ -215,7 +215,7 @@ app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
 app.get("/getAPI/:api_id", jwtCheck, function(req,res, next) {
     getToken(req.webtaskContext)
     .then( token => {
-      return getAPI(token, api_id);
+      return getAPI(token, req.params.api_id);
     })
     .then( resp => {
        res.json( resp );
@@ -391,14 +391,13 @@ function getAPI(token, api_id) {
             json: true
           }
         );
-  
 }
 
 function getUser(token, user_id) {
   return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ user_id, {
         headers: { "Authorization": "Bearer " + token },
         json: true
-    })
+    });
 }
 
 function getClientGrant(token, grant_id) {
