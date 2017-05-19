@@ -212,10 +212,10 @@ app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
   .catch(next);
 });
 
-app.get("/getAPI", jwtCheck, function(req,res, next) {
+app.get("/getAPI/:api_id", jwtCheck, function(req,res, next) {
     getToken(req.webtaskContext)
     .then( token => {
-      return getAPI(token);
+      return getAPI(token, api_id);
     })
     .then( resp => {
        res.json( resp );
