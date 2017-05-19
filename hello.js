@@ -112,7 +112,7 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
   .catch(next);
 });
 
-app.post("requestGrant", jwtCheck, function(req, res, next) {
+app.post("/requestGrant", jwtCheck, function(req, res, next) {
    getToken(req.webtaskContext)
   .then(function(token) {
     return getUser(token, req.user.sub)
@@ -149,7 +149,7 @@ app.post("requestGrant", jwtCheck, function(req, res, next) {
   .catch(next);
 });
 
-app.post("approveGrantRequest", jwtCheck, function(req,res,next) {
+app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
   getToken(req.webtaskContext)
   .then(function(token) {
     return Promise.all([ getUser(req.user.sub), getUser(req.body.user_id), getAPI(req.body.api_id) ])
@@ -210,6 +210,17 @@ app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
       res.json ( resp.filter( (grant) => { return grant.client_id == req.params.client_id}) );
   })
   .catch(next);
+});
+
+app.get("/getAPI", jwtCheck, function(req,res, next) {
+    getToken(req.webtaskContext)
+    .then( token => {
+      return getAPI(token);
+    })
+    .then( resp => {
+       res.json( resp );
+    })
+    .catch(next);
 });
 
 app.post('/addApi', jwtCheck, function(req, res, next) {
