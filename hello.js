@@ -47,16 +47,16 @@ function getClientNameAndSecret(token, client_id) {
 
 app.get('/getCredentials', jwtCheck, function (req, res, next) {
    getToken(req.webtaskContext)
-  .then(function(token) {
+  .then( token => {
     return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
         headers: { "Authorization": "Bearer " + token },
         json: true
     })
-    .then(function(user) {
+    .then( user => {
      // console.log(user);
       return Promise.all( user.app_metadata.clients.map( (client) => { return getClientNameAndSecret(token, client.owner_id) } ) );
     })
-    .then(function (resp) {
+    .then( resp => {
       //console.log(resp);
       res.json( resp );
     });
@@ -394,7 +394,6 @@ function getToken(context) {
           console.log("no valid token in storage", err);
           return getTokenNew(context);
           });
-  
 }
 
 function getAPIs(token) {
@@ -405,7 +404,6 @@ function getAPIs(token) {
             json: true
           }
         );
-  
 }
 
 function getAPI(token, api_id) {
