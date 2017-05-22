@@ -54,7 +54,7 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
     })
     .then(function(user) {
      // console.log(user);
-      return Promise.all( user.app_metadata.clients.map( (client) => { return getClientNameAndSecret(token, client.id) } ) );
+      return Promise.all( user.app_metadata.clients.map( (client) => { return getClientNameAndSecret(token, client.owner_id) } ) );
     })
     .then(function (resp) {
       //console.log(resp);
@@ -83,8 +83,8 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
           token_endpoint_auth_method: "client_secret_post",
           app_type: "non_interactive",
           client_metadata: {
-            owner: user.user_id,
-            email: user.email
+            owner_id: user.user_id,
+            owner_email: user.email
           }
         }
       })
@@ -108,6 +108,31 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
       //console.log(resp);
       res.json({"result": "Client Created"});
     });
+  })
+  .catch(next);
+});
+
+app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
+  getToken(req.webtaskContext)
+  .then( token => {
+    return getUser(token, req.user.sub)
+    .then( user => {
+      apis = app_metadata.apis || [];
+      var queryArray = apis.map( api => 'app_metadata.grantsRequests.api_id:"'+api.id+'"');
+      var api_querystring = queryArray.join(' OR ');
+
+      return request.get("https://iag-api.au.auth0.com/api/v2/users/", {
+        qs: {
+            fields: "user_id,app_metadata.grantsRequests",
+            include_fields: true,
+            q: "_exists_:app_metadata.grantsRequests AND (" + api_queryString + ")",
+            search_engine: "v2"
+          }
+      });
+    });
+  })
+  .then( resp => {
+    res.json( resp );
   })
   .catch(next);
 });
