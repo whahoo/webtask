@@ -128,7 +128,6 @@ app.post("/requestGrant", jwtCheck, function(req, res, next) {
       var newGrant = {};
       
       if (index < 0) { // use existing grant as the request object and update the scopes
-        console.log("idx", index );
         newGrant = grants[index];
         newGrant.scopes = req.body.scopes;
       }
