@@ -432,7 +432,7 @@ function createClientGrant(token, client_id, scopes, audience) {
   });
 }
 
-function updateUserMetaDataGrantRequests(token, user_id, grantRequests) {
+function updateUserMetaDataGrantRequests(token, user_id, grantsRequests) {
   return request({
         method: "PATCH",
         headers: { "Authorization": "Bearer " + token },
