@@ -121,9 +121,10 @@ app.post("/requestGrant", jwtCheck, function(req, res, next) {
       var grants = user.app_metadata.grants || [];
       //does this client grant exist?
       var index = grants.findIndex( grant => {
-          grant.client_id === req.body.client_id && 
+          return grant.client_id === req.body.client_id && 
           grant.api_id === req.body.api_id;
         });
+        console.log ("G", grants, "GR", grantsRequests, "idx", index );
       var newGrant = {};
       
       if (index) { // use existing grant as the request object and update the scopes
