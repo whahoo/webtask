@@ -490,7 +490,7 @@ function updateUserMetaDataGrants(token, user_id, grantRequests, grants, newGran
 
 app.use(function(err, req, res, next) {
   console.log("ERROR", err, "Request", req);
-  res.json( err.error);
+  res.status(500).send( err.error);
 });
 
 function uuid() {
