@@ -489,8 +489,8 @@ function updateUserMetaDataGrants(token, user_id, grantRequests, grants, newGran
 }
 
 app.use(function(err, req, res, next) {
-  console.log("ERROR", err, "Request", req);
-  res.status(500).send( err.error);
+  console.log("ERROR", err.stack, "Request", req);
+  res.status(500).send( err.stack);
 });
 
 function uuid() {
