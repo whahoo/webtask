@@ -120,7 +120,7 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
     .then( user => {
       apis = user.app_metadata.apis || [];
       var queryArray = apis.map( api => 'app_metadata.grantsRequests.api_id:"'+api.id+'"');
-      var api_querystring = queryArray.join(' OR ');
+      var api_queryString = queryArray.join(' OR ');
 
       return request.get("https://iag-api.au.auth0.com/api/v2/users/", {
         qs: {
