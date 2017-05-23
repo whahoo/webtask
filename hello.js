@@ -208,9 +208,10 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         if (!grantReq) return Promise.reject({"result":"Grant Not found"});
         if (!apiOwner) return Promise.reject({"result":"Not Api Owner"});
         // Check the scopes requested are available on the API
-        var scopesAllowed = grantReq.scopes.every( (reqScope) => { return
-          Api.scopes.some( scope => { return scope.value === reqScope} );
-        });
+        var scopesAllowed = grantReq.scopes.every( 
+            reqScope => Api.scopes.some( 
+                scope => scope.value === reqScope )
+            );
         console.log( scopesAllowed);
         if ( scopesAllowed ) { // If this is a Scope Update scopes for this or other apis already exist
           if ( grantReq.grant_id ) {
