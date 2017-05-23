@@ -211,6 +211,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         var scopesAllowed = grantReq.scopes.every( (reqScope) => {
           Api.scopes.some( scope => { scope.value === reqScope} );
         });
+        console.log( scopesAllowed);
         if ( scopesAllowed ) { // If this is a Scope Update scopes for this or other apis already exist
           if ( grantReq.grant_id ) {
             return getClientGrant(token, grantReq.grant_id)
@@ -228,8 +229,9 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
                 return updateUserMetaDataGrants(token, RequestingUser.user_id, grantRequests, grants, grantReq);
             });
           }
-        }
         return { "result": "Grant Created" };
+        }
+        return { "result": "Scopes Are Not Allowed", "Requested scopes" : grantReq.scopes, "Available Scopes" : Api.scopes };
     });
   })
   .then( resp => {
