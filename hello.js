@@ -134,10 +134,11 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
           
       })
       .then( resp => {
-        return resp.map( user => {
+        var usersGrants = resp.map( user => {
           var grantRequests = user.app_metadata.grantsRequests.filter( gr => apis.find( a => a.id == gr.api_id ) );
           return grantRequests.map( gr => { gr.user_id = user.user_id; return gr; });
         });
+        return [].concat.apply([],usersGrants);
       });
     });
   })
