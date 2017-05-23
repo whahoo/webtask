@@ -123,7 +123,8 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
       var api_queryString = queryArray.join(' OR ');
 
       return request.get("https://iag-api.au.auth0.com/api/v2/users", {
-        qs: {
+         headers: { "Authorization": "Bearer " + token },
+         qs: {
             fields: "user_id,app_metadata.grantsRequests",
             include_fields: true,
             q: "_exists_:app_metadata.grantsRequests AND (" + api_queryString + ")",
