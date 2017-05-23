@@ -192,9 +192,11 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
   .then(function(token) {
     return Promise.all([ getUser(token, req.user.sub), getUser(token, req.body.user_id), getAPI(token, req.body.api_id) ])
       .then( responses => {
+        
         var ApprovingUser = responses[0];
         var RequestingUser = responses[1];
         var Api = responses[2];
+        console.log ( "ApprovingUser", ApprovingUser,"RequestingUser", RequestingUser,"API", Api);
     // Does the requesting user have and active grantRequest that matches this approval request
         var grantsRequests = RequestingUser.app_metadata.grantsRequests || [];
         var grants = RequestingUser.app_metadata.grants || [];
