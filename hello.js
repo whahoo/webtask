@@ -54,7 +54,8 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
     })
     .then( user => {
      // console.log(user);
-      return Promise.all( user.app_metadata.clients.map( (client) => { return getClientNameAndSecret(token, client.id) } ) );
+     var clients = user.app_metadata.clients || [];
+      return Promise.all( clients.map( (client) => { return getClientNameAndSecret(token, client.id) } ) );
     })
     .then( resp => {
       //console.log(resp);
