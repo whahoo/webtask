@@ -190,6 +190,7 @@ app.post("/requestGrant", jwtCheck, function(req, res, next) {
 app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
   getToken(req.webtaskContext)
   .then(function(token) {
+      console.log (req.body);
     return Promise.all([ getUser(token, req.user.sub), getUser(token, req.body.user_id), getAPI(token, req.body.api_id) ])
       .then( responses => {
         
