@@ -119,6 +119,7 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
     return getUser(token, req.user.sub)
     .then( user => {
       apis = user.app_metadata.apis || [];
+      if ( apis.length === 0 ) return {};
       var queryArray = apis.map( api => 'app_metadata.grantsRequests.api_id:"'+api.id+'"');
       var api_queryString = queryArray.join(' OR ');
 
