@@ -129,7 +129,9 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
             include_fields: true,
             q: "_exists_:app_metadata.grantsRequests AND (" + api_queryString + ")",
             search_engine: "v2"
-          }
+          },
+          json: true
+          
       });
     });
   })
