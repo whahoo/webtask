@@ -472,6 +472,7 @@ function updateUserMetaDataGrants(token, user_id, grantsRequests, grants, newGra
   grantsRequests.splice(grantsRequests.findIndex( gr => newGrant.id === gr.id), 1);
   //Add it to approved grants
   newGrant.approved = Date.now();
+  grants.splice(grants.findIndex( gr => newGrant.id === gr.id), 1);
   grants.push(newGrant);
                   
   return request({
