@@ -36,29 +36,15 @@ app.use(bodyParser.urlencoded({
 }));
 app.use(bodyParser.json());
 
-function getClientNameAndSecret(token, client_id) {
-  return request.get("https://iag-api.au.auth0.com/api/v2/clients/" + client_id,
-  {
-    headers: { "Authorization": "Bearer " + token },
-    qs: { fields : "name,client_id,client_secret,description" },
-    json: true
-  });
-}
-
 app.get('/getCredentials', jwtCheck, function (req, res, next) {
    getToken(req.webtaskContext)
   .then( token => {
-    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
-        headers: { "Authorization": "Bearer " + token },
-        json: true
-    })
+    return getUser( token, req.user.sub)
     .then( user => {
-     // console.log(user);
-     var clients = user.app_metadata.clients || [];
+      var clients = user.app_metadata.clients || [];
       return Promise.all( clients.map( (client) => { return getClientNameAndSecret(token, client.id) } ) );
     })
     .then( resp => {
-      //console.log(resp);
       res.json( resp );
     });
   })
@@ -68,12 +54,8 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
 app.post('/addApplication', jwtCheck, function (req, res, next) {
   getToken(req.webtaskContext)
   .then(function(token) {
-    return request.get("https://iag-api.au.auth0.com/api/v2/users/"+ req.user.sub, {
-        headers: { "Authorization": "Bearer " + token },
-        json: true
-    })
+    return getUser( token, req.user.sub)
     .then(function(user) {
-      //console.log(req.body);
       return request.post("https://iag-api.au.auth0.com/api/v2/clients",
       {
         headers: { "Authorization": "Bearer " + token },
@@ -90,7 +72,6 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
         }
       })
       .then(function (resp) {
-        //console.log(user);
         var clients = user.app_metadata.clients || [];
         clients.push( { id: resp.client_id, name: resp.name } );
       
@@ -106,7 +87,6 @@ app.post('/addApplication', jwtCheck, function (req, res, next) {
       });
     })
     .then(function(resp){
-      //console.log(resp);
       res.json({"result": "Client Created"});
     });
   })
@@ -515,6 +495,16 @@ function updateUserMetaDataGrants(token, user_id, grantRequests, grants, newGran
     json: true
   });
 }
+
+function getClientNameAndSecret(token, client_id) {
+  return request.get("https://iag-api.au.auth0.com/api/v2/clients/" + client_id,
+  {
+    headers: { "Authorization": "Bearer " + token },
+    qs: { fields : "name,client_id,client_secret,description" },
+    json: true
+  });
+}
+
 
 app.use(function(err, req, res, next) {
   console.log("ERROR", err, err.stack);
