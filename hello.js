@@ -216,8 +216,8 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         
         if (! scopesAllowed ) return { "result": "Scopes Are Not Allowed", "Requested scopes" : grantReq.scopes, "Available Scopes" : Api.scopes };
         // If this is a Scope Update scopes for this or other apis already exist
-          console.log(grantReq);
-          if ( grantReq.grant_id != null) {  /// This is wrong Fix it
+          console.log("GR::", grantReq);
+          if ( grantReq.grant_id ) {
             return getClientGrant(token, grantReq.grant_id)
               .then( resp => {
                 return patchClientGrant(token, grantReq.grant_id, scopes);
@@ -465,7 +465,7 @@ function patchClientGrant(token, grant_id, scopes) {
 }
 
 function createClientGrant(token, client_id, scopes, audience) {
-  return request.post("https://iag-api.au.auth0.com/api/v2/client-grants/", {
+  return request.post("https://iag-api.au.auth0.com/api/v2/client-grants", {
          headers: { "Authorization": "Bearer " + token },
          body: {
           "client_id": client_id,
