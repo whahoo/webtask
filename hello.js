@@ -217,6 +217,9 @@ app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
   .then( token => {
     return getClientGrantsByClient(token, req.params.client_id);
   })
+  .then( resp => {
+    res.json( resp );
+  })
   .catch(next);
 });
 
