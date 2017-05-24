@@ -187,7 +187,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         if (! scopesAllowed ) return { "result": "Scopes Are Not Allowed", "Requested scopes" : grantReq.scopes, "Available Scopes" : Api.scopes };
         // If this is a Scope Update scopes for this or other apis already exist
         var clientMetadata = {};
-        clientMetadata['api:'+Api.name] = grantReq.scopes;
+        clientMetadata['api:'+Api.name] = grantReq.scopes.join(' ');
         console.log("GR::", grantReq);
         return patchClientMetadata(token, grantReq.client_id, clientMetadata )
         .then( resp => {
