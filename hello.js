@@ -489,7 +489,7 @@ function patchClientMetadata(token, client_id, metadata) {
     uri: "https://iag-api.au.auth0.com/api/v2/clients/" + client_id,
     body: {
       client_metadata: metadata
-    }
+    },
     json: true
   });
 }
