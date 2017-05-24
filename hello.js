@@ -161,7 +161,7 @@ app.post("/requestGrant", jwtCheck, function(req, res, next) {
           return grant.client_id === req.body.client_id && 
           grant.api_id === req.body.api_id;
         });
-        console.log ("G", grants, "GR", grantsRequests, "idx", index );
+     //   console.log ("G", grants, "GR", grantsRequests, "idx", index );
       var newGrant = {};
       
       if (index >= 0) { // use existing grant as the request object and update the scopes
@@ -234,8 +234,6 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
             });
           }
           return { "result": "Grant Created" };
-
-        
     });
   })
   .then( resp => {
@@ -245,16 +243,9 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
 });
 
 app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
-    getToken(req.webtaskContext)
-  .then(function(token) {
-    return request.get("https://iag-api.au.auth0.com/api/v2/client-grants",
-    { headers: { "Authorization": "Bearer " + token },
-      qs : { audience: "https://api.iag.com.au/" },
-      json: true }
-    );
-  }).
-  then(function(resp) {
-      res.json ( resp.filter( (grant) => { return grant.client_id == req.params.client_id}) );
+  getToken(req.webtaskContext)
+  .then( token => {
+    return getClientGrantsByClient(token, client_id);
   })
   .catch(next);
 });
@@ -445,11 +436,28 @@ function getUser(token, user_id) {
     });
 }
 
-function getClientGrant(token, grant_id) {
-  return request.get("https://iag-api.au.auth0.com/api/v2/client-grants/" + grant_id, {
+function getAllClientGrants( token ) {
+    return request.get("https://iag-api.au.auth0.com/api/v2/client-grants", {
         headers: { "Authorization": "Bearer " + token },
+        qs : { audience: "https://api.iag.com.au/" },
         json: true
         });
+}
+
+function getClientGrantById(token, grant_id) {
+    return getAllClientGrants( token )
+          .then( resp => {
+            return resp.filter( grant => { return grant.id == grant_id }) 
+        );
+  });
+}
+
+function getClientGrantsByClient(token, client_id) {
+  return  getAllClientGrants( token )
+          .then( resp => {
+            return resp.filter( grant => { return grant.id == grant_id }) 
+          );
+  });
 }
 
 function patchClientGrant(token, grant_id, scopes) {
