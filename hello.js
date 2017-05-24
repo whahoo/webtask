@@ -1,8 +1,9 @@
+/*jshint esversion: 6 */
+
 var app = new (require('express'))();
 var bodyParser = require('body-parser');
 var request = require('request-promise');
 var wt = require('webtask-tools');
-var aws = require('aws-sdk');
 
 var jwt = require('jsonwebtoken');
 var ejwt = require('express-jwt');
@@ -20,17 +21,6 @@ var jwtCheck = ejwt({
     algorithms: ['RS256']
 });
 
-var jwtIDCheck = ejwt({
-    secret: jwks.expressJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: "https://iag-api.au.auth0.com/.well-known/jwks.json"
-    }),
-    issuer: "https://iag-api.au.auth0.com/",
-    algorithms: ['RS256']
-});
-
 app.use(bodyParser.urlencoded({
     extended: true
 }));
@@ -42,7 +32,7 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
     return getUser( token, req.user.sub)
     .then( user => {
       var clients = user.app_metadata.clients || [];
-      return Promise.all( clients.map( (client) => { return getClientNameAndSecret(token, client.id) } ) );
+      return Promise.all( clients.map( (client) => { return getClientNameAndSecret(token, client.id); } ) );
     })
     .then( resp => {
       res.json( resp );
@@ -98,7 +88,7 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
   .then( token => {
     return getUser(token, req.user.sub)
     .then( user => {
-      apis = user.app_metadata.apis || [];
+      var apis = user.app_metadata.apis || [];
       if ( apis.length === 0 ) return [];
       var queryArray = apis.map( api => 'app_metadata.grantsRequests.api_id:"'+api.id+'"');
       var api_queryString = queryArray.join(' OR ');
@@ -198,19 +188,19 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         // If this is a Scope Update scopes for this or other apis already exist
           console.log("GR::", grantReq);
           if ( grantReq.grant_id ) {
-            return getClientGrant(token, grantReq.grant_id)
+            return getClientGrantById(token, grantReq.grant_id)
               .then( resp => {
-                return patchClientGrant(token, grantReq.grant_id, scopes);
+                return patchClientGrant(token, grantReq.grant_id, grantReq.scopes);
               })
               .then( resp => {
-                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantRequests, grants, grantReq);
+                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq);
               });
           }
           else { // Create the Client Grant if this is the first time
             return createClientGrant(token, grantReq.client_id, grantReq.scopes, "https://api.iag.com.au/" )
               .then( resp => {
                 grantReq.grant_id = resp.id; // add Client Grant Id to grant 
-                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantRequests, grants, grantReq);
+                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq);
             });
           }
           return { "result": "Grant Created" };
@@ -225,7 +215,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
 app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
   getToken(req.webtaskContext)
   .then( token => {
-    return getClientGrantsByClient(token, client_id);
+    return getClientGrantsByClient(token, req.params.client_id);
   })
   .catch(next);
 });
@@ -253,7 +243,7 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
           "identifier": req.body.endpoint,
           "signing_alg": "RS256",
           "token_lifetime": req.body.token_lifetime,
-          "scopes" : req.body.scopes.map( (scope) => { return {"value": scope} })
+          "scopes" : req.body.scopes.map( (scope) => { return {"value": scope}; })
         }
       })
       .then(function(resp) {
@@ -263,7 +253,7 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
             json: true
           })
           .then(function(resp) {
-            var allscopes = resp.scopes.concat(req.body.scopes.map( (scope) => { return {"value": scope} }));
+            var allscopes = resp.scopes.concat(req.body.scopes.map( (scope) => { return {"value": scope}; }));
             return request({
               method:"PATCH",
               uri: "https://iag-api.au.auth0.com/api/v2/resource-servers/591a46ade6d8800cc84fdf05",
@@ -333,10 +323,10 @@ function getTokenFromStorage(context) {
       if (error) { reject(error); return; }
       data = data || {};
      // console.log("storage", data.auth0_mgmt_token);
-      if (data.auth0_mgmt_token == null ) { reject("No Token in storage"); return; }
+      if (data.auth0_mgmt_token === null ) { reject("No Token in storage"); return; }
       var storedToken = jwt.decode(data.auth0_mgmt_token, {complete: true});
       jwksClient.getSigningKey(storedToken.header.kid, (err, key) => {  // Get the publicKey of the stored token
-        if(err) { reject(err); return }
+        if(err) { reject(err); return; }
         const signingKey = key.publicKey || key.rsaPublicKey;
        // console.log("storedToken key", signingKey);
         jwt.verify(data.auth0_mgmt_token, signingKey, function(err, decoded) { //verify the token
@@ -427,15 +417,14 @@ function getAllClientGrants( token ) {
 function getClientGrantById(token, grant_id) {
     return getAllClientGrants( token )
           .then( resp => {
-            return resp.filter( grant => { return grant.id == grant_id }) 
-        );
-  });
+            return resp.filter( grant => { return grant.id == grant_id; });
+				  });
 }
 
 function getClientGrantsByClient(token, client_id) {
   return  getAllClientGrants( token )
           .then( resp => {
-            return resp.filter( grant => { return grant.id == grant_id });
+            return resp.filter( grant => { return grant.client_id == client_id; });
   });
 }
 
@@ -475,7 +464,7 @@ function updateUserMetaDataGrantRequests(token, user_id, grantsRequests) {
       });
 }
 
-function updateUserMetaDataGrants(token, user_id, grantRequests, grants, newGrant) {
+function updateUserMetaDataGrants(token, user_id, grantsRequests, grants, newGrant) {
   //Delete request from array
   grantsRequests.splice(grantsRequests.findIndex( gr => newGrant.id === gr.id), 1);
   //Add it to approved grants
@@ -519,11 +508,6 @@ function uuid() {
 }
 
 module.exports = wt.fromExpress(app);
-
-
-
-
-
 
 
 
