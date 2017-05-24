@@ -182,7 +182,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
             reqScope => Api.scopes.some( 
                 scope => scope.value === reqScope )
             );
-        console.log( scopesAllowed);
+        console.log(scopesAllowed);
         
         if (! scopesAllowed ) return { "result": "Scopes Are Not Allowed", "Requested scopes" : grantReq.scopes, "Available Scopes" : Api.scopes };
         // If this is a Scope Update scopes for this or other apis already exist
