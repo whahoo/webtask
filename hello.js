@@ -190,7 +190,10 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
           if ( grantReq.grant_id ) {
             return getClientGrantById(token, grantReq.grant_id)
               .then( resp => {
-                return patchClientGrant(token, grantReq.grant_id, grantReq.scopes);
+                var clientMetadata = {};
+                clientMetadata['api:'+Api.name] = grantReq.scopes;
+                return patchClientMetadata(token, grantReq.client_id, clientMetadata );
+                //return patchClientGrant(token, grantReq.grant_id, grantReq.scopes);
               })
               .then( resp => {
                 return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq);
@@ -485,6 +488,18 @@ function updateUserMetaDataGrants(token, user_id, grantsRequests, grants, newGra
         "grants": grants
       }
     },
+    json: true
+  });
+}
+
+function patchClientMetadata(token, client_id, metadata) {
+  return request({
+    method: "PATCH",
+    headers: { "Authorization": "Bearer " + token },
+    uri: "https://iag-api.au.auth0.com/api/v2/clients/" + client_id,
+    body: {
+      client_metadata: metadata
+    }
     json: true
   });
 }
