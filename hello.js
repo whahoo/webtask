@@ -186,27 +186,17 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         
         if (! scopesAllowed ) return { "result": "Scopes Are Not Allowed", "Requested scopes" : grantReq.scopes, "Available Scopes" : Api.scopes };
         // If this is a Scope Update scopes for this or other apis already exist
-          console.log("GR::", grantReq);
-          if ( grantReq.grant_id ) {
-            return getClientGrantById(token, grantReq.grant_id)
-              .then( resp => {
-                var clientMetadata = {};
-                clientMetadata['api:'+Api.name] = grantReq.scopes;
-                return patchClientMetadata(token, grantReq.client_id, clientMetadata );
-                //return patchClientGrant(token, grantReq.grant_id, grantReq.scopes);
-              })
-              .then( resp => {
-                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq);
-              });
-          }
-          else { // Create the Client Grant if this is the first time
-            return createClientGrant(token, grantReq.client_id, grantReq.scopes, "https://api.iag.com.au/" )
-              .then( resp => {
-                grantReq.grant_id = resp.id; // add Client Grant Id to grant 
-                return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq);
-            });
-          }
-          return { "result": "Grant Created" };
+        var clientMetadata = {};
+        clientMetadata['api:'+Api.name] = grantReq.scopes;
+        console.log("GR::", grantReq);
+        return patchClientMetadata(token, grantReq.client_id, clientMetadata )
+        .then( resp => {
+          if (!grantReq.grant_id ) createClientGrant(token, grantReq.client_id, grantReq.scopes, "https://api.iag.com.au/" );
+          return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq)
+          .then( resp => {
+             return { "result": "Grant Created" };
+          });
+        });
     });
   })
   .then( resp => {
