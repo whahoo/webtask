@@ -326,7 +326,7 @@ function getTokenFromStorage(context) {
       if (error) { reject(error); return; }
       data = data || {};
       console.log("storage", data.auth0_mgmt_token);
-      if (data.auth0_mgmt_token === null ) { reject("No Token in storage"); return; }
+      if (data.auth0_mgmt_token == null ) { reject("No Token in storage"); return; }
       var storedToken = jwt.decode(data.auth0_mgmt_token, {complete: true});
       jwksClient.getSigningKey(storedToken.header.kid, (err, key) => {  // Get the publicKey of the stored token
         if(err) { reject(err); return; }
