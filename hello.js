@@ -455,8 +455,7 @@ function getClientGrantById(token, grant_id) {
 function getClientGrantsByClient(token, client_id) {
   return  getAllClientGrants( token )
           .then( resp => {
-            return resp.filter( grant => { return grant.id == grant_id }) 
-          );
+            return resp.filter( grant => { return grant.id == grant_id });
   });
 }
 
