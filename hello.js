@@ -16,7 +16,7 @@ var jwtCheck = ejwt({
         jwksRequestsPerMinute: 5,
         jwksUri: "https://iag-api.au.auth0.com/.well-known/jwks.json"
     }),
-    audience: 'https://api.auth.auiag.corp/kongAPI',
+    audience: 'https://api.auth.auiag.corp/devPortal',
     issuer: "https://iag-api.au.auth0.com/",
     algorithms: ['RS256']
 });
@@ -241,23 +241,6 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
           "token_lifetime": req.body.token_lifetime,
           "scopes" : req.body.scopes.map( (scope) => { return {"value": scope}; })
         }
-      })
-      .then(function(resp) {
-        return request.get("https://iag-api.au.auth0.com/api/v2/resource-servers/591a46ade6d8800cc84fdf05",
-          {
-            headers: { "Authorization": "Bearer " + token },
-            json: true
-          })
-          .then(function(resp) {
-            var allscopes = resp.scopes.concat(req.body.scopes.map( (scope) => { return {"value": scope}; }));
-            return request({
-              method:"PATCH",
-              uri: "https://iag-api.au.auth0.com/api/v2/resource-servers/591a46ade6d8800cc84fdf05",
-              headers: { "Authorization": "Bearer " + token },
-              body: { "scopes": allscopes },
-              json: true
-            });
-        });
       });
     })
     .then(function(resp) {
