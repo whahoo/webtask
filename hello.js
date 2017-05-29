@@ -511,7 +511,12 @@ function getClientNameAndSecret(token, client_id) {
 
 app.use(function(err, req, res, next) {
   console.log("ERROR", err, err.stack);
+ if (err.name === 'UnauthorizedError') {
+    res.status(401).send('invalid token...');
+ }
+ else {
   res.status(500).send( err.stack);
+ }
 });
 
 function uuid() {
