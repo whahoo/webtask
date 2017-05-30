@@ -242,8 +242,11 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
           "scopes" : req.body.scopes.map( (scope) => { return {"value": scope}; })
         }
       })
-      .then( resp => {
-        return updateUserMetaDataApiOwner(token, req.user.sub, resp.id);
+      .then( resp => { // Add Api_id to calling user metadata
+        return updateUserMetaDataApiOwner(token, req.user.sub, resp.id)
+        .then( user => {
+          return resp;  // Re-Return the API responses
+        });
       });
     })
     .then(function(resp) {
