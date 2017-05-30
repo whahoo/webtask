@@ -191,7 +191,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         console.log("GR::", grantReq);
         return patchClientMetadata(token, grantReq.client_id, clientMetadata )
         .then( resp => {
-          if (!grantReq.grant_id ) createClientGrant(token, grantReq.client_id, grantReq.scopes, "https://api.iag.com.au/" );
+          if (!grantReq.grant_id ) createClientGrant(token, grantReq.client_id, [], "https://api.iag.com.au/" );
           return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq)
           .then( resp => {
              return { "result": "Grant Created" };
