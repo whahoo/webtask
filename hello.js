@@ -243,7 +243,7 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
         }
       })
       .then( resp => {
-        return updateUserMetaDataApiOwner(req.user.sub, resp.id);
+        return updateUserMetaDataApiOwner(token, req.user.sub, resp.id);
       });
     })
     .then(function(resp) {
@@ -431,7 +431,7 @@ function createClientGrant(token, client_id, scopes, audience) {
 }
 
 function updateUserMetaDataApiOwner(token, user_id, api_id) {
-  return getUser( user_id ).
+  return getUser( token, user_id ).
   then( user => {
     var apiowner = user.app_metadata.apis || [];
     apiowner.push({id:api_id});
