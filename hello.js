@@ -241,6 +241,9 @@ app.post('/addApi', jwtCheck, function(req, res, next) {
           "token_lifetime": req.body.token_lifetime,
           "scopes" : req.body.scopes.map( (scope) => { return {"value": scope}; })
         }
+      })
+      .then( resp => {
+        return updateUserMetaDataApiOwner(req.user.sub, resp.id);
       });
     })
     .then(function(resp) {
@@ -424,6 +427,23 @@ function createClientGrant(token, client_id, scopes, audience) {
           "scope": scopes
         },
         json: true
+  });
+}
+
+function updateUserMetaDataApiOwner(token, user_id, api_id) {
+  return getUser( user_id ).
+  then( user => {
+    var apiowner = user.app_metadata.apis || [];
+    apiowner.push({id:api_id});
+    return request({
+      method: "PATCH",
+      headers: { "Authorization": "Bearer " + token },
+      uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
+      body: {
+        app_metadata: { "apis": apiowner }
+      },
+      json: true
+    });
   });
 }
 
