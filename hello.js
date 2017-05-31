@@ -200,10 +200,9 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
           }
           return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
         })
-          .then( resp => {
-             return { "result": "Grant Created" };
-          });
-        });
+        .then( resp => {
+           return { "result": "Grant Created" };
+      });
     });
   })
   .then( resp => {
