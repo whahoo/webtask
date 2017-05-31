@@ -152,7 +152,7 @@ app.post("/requestGrant", jwtCheck, function(req, res, next) {
     });
   })
   .then( resp => {
-    res.json({"result": "Client Created"});
+    res.json({"result": "Request Received"});
   })
   .catch(next);
 });
@@ -191,8 +191,15 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         console.log("GR::", grantReq);
         return patchClientMetadata(token, grantReq.client_id, clientMetadata )
         .then( resp => {
-          if (!grantReq.grant_id ) createClientGrant(token, grantReq.client_id, [], "https://api.iag.com.au/" );
-          return updateUserMetaDataGrants(token, RequestingUser.user_id, grantsRequests, grants, grantReq)
+          if (!grantReq.grant_id ) {
+            return createClientGrant(token, grantReq.client_id, [], "https://api.iag.com.au/" ).
+            then( resp => {
+              grantReq.grant_id = resp.id;
+              return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
+            });
+          }
+          return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
+        })
           .then( resp => {
              return { "result": "Grant Created" };
           });
@@ -262,8 +269,7 @@ app.get('/listApis', jwtCheck, function (req, res, next) {
       return getAPIs(token);
     })
     .then( resp => {
-      var apis = resp.filter( api => api.identifier != "https://iag-api.au.auth0.com/api/v2/");
-      apis = apis.filter( api => api.identifier.startsWith("https://api.iag.com.au/v"));
+      var apis = resp.filter( api => api.identifier.startsWith("https://api.iag.com.au/v"));
       res.json( 
         apis.map( api => {
           return {
@@ -463,11 +469,12 @@ function updateUserMetaDataGrantRequests(token, user_id, grantsRequests) {
       });
 }
 
-function updateUserMetaDataGrants(token, user_id, grantsRequests, grants, newGrant) {
+function updateUserMetaDataGrants(token, approver, user_id, grantsRequests, grants, newGrant) {
   //Delete request from array
   grantsRequests.splice(grantsRequests.findIndex( gr => newGrant.id === gr.id), 1);
   //Add it to approved grants
   newGrant.approved = Date.now();
+  newGrant.approver = approver;
   grants.splice(grants.findIndex( gr => newGrant.id === gr.id), 1);
   grants.push(newGrant);
                   
@@ -511,7 +518,6 @@ function getClientNameAndSecret(token, client_id) {
       description: resp.description,
       client_metadata: resp.client_metadata
     }
-    
   });
 }
 
