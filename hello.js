@@ -263,6 +263,7 @@ app.get('/listApis', jwtCheck, function (req, res, next) {
     })
     .then( resp => {
       var apis = resp.filter( api => api.identifier != "https://iag-api.au.auth0.com/api/v2/");
+      apis = apis.filter( api => api.identifier.startsWith("https://api.iag.com.au/v"));
       res.json( 
         apis.map( api => {
           return {
