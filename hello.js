@@ -166,10 +166,10 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
       var clientMetadata = {};
       clientMetadata['api:' + Api.name] = grantReq.scopes.join(' ');
     // console.log("GR::", grantReq);
-      return patchClientMetadata(token, grantReq.client_id, clientMetadata );
-    })
-    .then( resp => {
-      return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
+      return patchClientMetadata(token, grantReq.client_id, clientMetadata )
+      .then( resp => {
+        return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
+      });
     })
     .then( resp => {
       res.json( { "result": "Grant Created" });
