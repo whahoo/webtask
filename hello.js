@@ -80,7 +80,7 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
       return request.get("https://iag-api.au.auth0.com/api/v2/users", {
          headers: { "Authorization": "Bearer " + token },
          qs: {
-            fields: "user_id,app_metadata.grantsRequests,app_metadata.clients",
+            fields: "name,email,user_id,app_metadata.grantsRequests,app_metadata.clients",
             include_fields: true,
             q: "_exists_:app_metadata.grantsRequests AND (" + api_queryString + ")",
             search_engine: "v2"
@@ -96,6 +96,8 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
             var client = user.app_metadata.clients.find( client => client.id == gr.client_id );
             gr.client_name = client.name;
             gr.user_id = user.user_id;
+            gr.user_name = user.name;
+            gr.user_email = user.email;
             return gr; });
         });
         return [].concat.apply([],usersGrants);
