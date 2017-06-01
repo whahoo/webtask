@@ -43,42 +43,26 @@ app.get('/getCredentials', jwtCheck, function (req, res, next) {
 
 app.post('/addApplication', jwtCheck, function (req, res, next) {
   getToken(req.webtaskContext)
-  .then(function(token) {
+  .then( token => {
     return getUser( token, req.user.sub)
-    .then(function(user) {
-      return request.post("https://iag-api.au.auth0.com/api/v2/clients",
-      {
-        headers: { "Authorization": "Bearer " + token },
-        json: true,
-        body: {
-          name: req.body.appName,
-          description: user.email + " " + req.body.appName,
-          token_endpoint_auth_method: "client_secret_post",
-          app_type: "non_interactive",
-          client_metadata: {
-            owner_id: user.user_id,
-            owner_email: user.email
-          }
-        }
-      })
-      .then(function (resp) {
-        var clients = user.app_metadata.clients || [];
-        clients.push( { id: resp.client_id, name: resp.name } );
-      
-        return request({
-          method: "PATCH",
-          uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user.user_id,
-          headers: { "Authorization": "Bearer " + token },
-          body: {
-            app_metadata: { "clients": clients }
-          },
-          json: true
+    .then( user => {
+      return createClientApplication(token, req.body.appName, user)
+      .then( client => {
+        return createClientGrant(token, client.client_id, [], "https://api.iag.com.au/" )
+        .then( grant => {
+          var clients = user.app_metadata.clients || [];
+          clients.push({
+              id: client.client_id,
+              name: client.name,
+              grant_id: grant.id
+          });
+          return updateUserMetaDataClients(token, user.user_id, clients);
         });
       });
-    })
-    .then(function(resp){
-      res.json({"result": "Client Created"});
     });
+  })
+  .then(function(resp){
+    res.json({"result": "Client Created"});
   })
   .catch(next);
 });
@@ -169,6 +153,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         var Api = responses[2];
         console.log ( "ApprovingUser", ApprovingUser,"RequestingUser", RequestingUser,"API", Api);
     // Does the requesting user have and active grantRequest that matches this approval request
+        var requestingUserClients = RequestingUser.app_metadata.clients || [];
         var grantsRequests = RequestingUser.app_metadata.grantsRequests || [];
         var grants = RequestingUser.app_metadata.grants || [];
         var grantReq = grantsRequests.find( (grantReq) => grantReq.client_id === req.body.client_id && grantReq.api_id === req.body.api_id);
@@ -191,7 +176,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
         console.log("GR::", grantReq);
         return patchClientMetadata(token, grantReq.client_id, clientMetadata )
         .then( resp => {
-          if (!grantReq.grant_id ) {
+          if (! requestingUserClients.find( client => { client.id == grantReq.client_id }).grant_id ) {
             return createClientGrant(token, grantReq.client_id, [], "https://api.iag.com.au/" ).
             then( resp => {
               grantReq.grant_id = resp.id;
@@ -438,6 +423,17 @@ function createClientGrant(token, client_id, scopes, audience) {
         json: true
   });
 }
+function updateUserMetaDataClients(token, user_id, clients) {
+  return request({
+      method: "PATCH",
+      uri: "https://iag-api.au.auth0.com/api/v2/users/"+ user_id,
+      headers: { "Authorization": "Bearer " + token },
+      body: {
+        app_metadata: { "clients": clients }
+      },
+      json: true
+  });
+}
 
 function updateUserMetaDataApiOwner(token, user_id, api_id) {
   return getUser( token, user_id ).
@@ -489,6 +485,26 @@ function updateUserMetaDataGrants(token, approver, user_id, grantsRequests, gran
       }
     },
     json: true
+  });
+}
+
+function createClientApplication(token, appName, user) {
+  return request({
+    method: 'POST',
+    uri: "https://iag-api.au.auth0.com/api/v2/clients",
+    headers: { "Authorization": "Bearer " + token },
+    json: true,
+    body: {
+      name: appName,
+      description: user.email + " " + appName,
+      token_endpoint_auth_method: "client_secret_post",
+      app_type: "non_interactive",
+      client_metadata: {
+        owner_id: user.user_id,
+        owner_email: user.email
+      },
+      grant_types: [ "client_credentials" ]
+    }
   });
 }
 
