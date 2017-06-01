@@ -93,8 +93,8 @@ app.get("/pendingApprovals", jwtCheck, function(req,res,next) {
           var grantRequests = user.app_metadata.grantsRequests.filter( gr => apis.find( a => a.id == gr.api_id ) );
           return grantRequests.map( gr => {
             console.log(user.app_metadata);
-            var client_name = user.app_metadata.clients.find( client => { client.id == gr.client_id});
-            gr.client_name = client_name.name;
+            var client = user.app_metadata.clients.find( client => client.id == gr.client_id );
+            gr.client_name = client.name;
             gr.user_id = user.user_id;
             return gr; });
         });
