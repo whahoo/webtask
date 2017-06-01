@@ -186,6 +186,7 @@ app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
 });
 
 app.get("/getGrants/:client_id", jwtCheck, function(req, res, next) {
+// Not used as there are no API specific client grants
   getToken(req.webtaskContext)
   .then( token => {
     return getClientGrantsByClient(token, req.params.client_id);
@@ -412,6 +413,7 @@ function createClientGrant(token, client_id, scopes, audience) {
         json: true
   });
 }
+
 function updateUserMetaDataClients(token, user_id, clients) {
   return request({
       method: "PATCH",
@@ -525,7 +527,6 @@ function getClientNameAndSecret(token, client_id) {
     }
   });
 }
-
 
 app.use(function(err, req, res, next) {
   console.log("ERROR", err, err.stack);
