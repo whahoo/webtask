@@ -143,55 +143,37 @@ app.post("/requestGrant", jwtCheck, function(req, res, next) {
 
 app.post("/approveGrantRequest", jwtCheck, function(req,res,next) {
   getToken(req.webtaskContext)
-  .then(function(token) {
-      console.log (req.body);
-    return Promise.all([ getUser(token, req.user.sub), getUser(token, req.body.user_id), getAPI(token, req.body.api_id) ])
-      .then( responses => {
-        
-        var ApprovingUser = responses[0];
-        var RequestingUser = responses[1];
-        var Api = responses[2];
-        console.log ( "ApprovingUser", ApprovingUser,"RequestingUser", RequestingUser,"API", Api);
+  .then( token => {
+    // Collect all the things! RequestingUser ApprovingUser and API details 
+    return Promise.all([ getUser(token, req.user.sub), getUser(token, req.body.user_id), getAPI(token, req.body.api_id) ]);
+  })
+  .then( responses => {
+    var ApprovingUser = responses[0];
+    var RequestingUser = responses[1];
+    var Api = responses[2];
     // Does the requesting user have and active grantRequest that matches this approval request
-        var requestingUserClients = RequestingUser.app_metadata.clients || [];
-        var grantsRequests = RequestingUser.app_metadata.grantsRequests || [];
-        var grants = RequestingUser.app_metadata.grants || [];
-        var grantReq = grantsRequests.find( (grantReq) => grantReq.client_id === req.body.client_id && grantReq.api_id === req.body.api_id);
+    var grantsRequests = RequestingUser.app_metadata.grantsRequests || [];
+    var grants = RequestingUser.app_metadata.grants || [];
+    var grantReq = grantsRequests.find( (grantReq) => grantReq.client_id === req.body.client_id && grantReq.api_id === req.body.api_id);
     // Check to see if the ApprovingUser is an owner of this API
-        var ownerApis = ApprovingUser.app_metadata.apis || [];
-        var apiOwner = ownerApis.find( (api) => api.id === grantReq.api_id);
-        if (!grantReq) return Promise.reject({"result":"Grant Not found"});
-        if (!apiOwner) return Promise.reject({"result":"Not Api Owner"});
-        // Check the scopes requested are available on the API
-        var scopesAllowed = grantReq.scopes.every( 
-            reqScope => Api.scopes.some( 
-                scope => scope.value === reqScope )
-            );
-        console.log(scopesAllowed);
-        
-        if (! scopesAllowed ) return { "result": "Scopes Are Not Allowed", "Requested scopes" : grantReq.scopes, "Available Scopes" : Api.scopes };
-        // If this is a Scope Update scopes for this or other apis already exist
-        var clientMetadata = {};
-        clientMetadata['api:'+Api.name] = grantReq.scopes.join(' ');
-        console.log("GR::", grantReq);
-        return patchClientMetadata(token, grantReq.client_id, clientMetadata )
-        .then( resp => {
-          if (! requestingUserClients.find( client => { client.id == grantReq.client_id }).grant_id ) {
-            return createClientGrant(token, grantReq.client_id, [], "https://api.iag.com.au/" ).
-            then( resp => {
-              grantReq.grant_id = resp.id;
-              return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
-            });
-          }
-          return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
-        })
-        .then( resp => {
-           return { "result": "Grant Created" };
-      });
-    });
+    var ownerApis = ApprovingUser.app_metadata.apis || [];
+    var apiOwner = ownerApis.find( (api) => api.id === grantReq.api_id);
+    if (!grantReq) return Promise.reject({"result":"Grant Not found"});
+    if (!apiOwner) return Promise.reject({"result":"Not Api Owner"});
+    // Check the scopes requested are available on the API
+    var scopesAllowed = grantReq.scopes.every( reqScope => Api.scopes.some( scope => scope.value === reqScope ));
+    // console.log(scopesAllowed);
+    if (! scopesAllowed ) return Promise.reject({ "result": "Scopes Are Not Allowed", "Requested scopes" : grantReq.scopes, "Available Scopes" : Api.scopes });
+    var clientMetadata = {};
+    clientMetadata['api:' + Api.name] = grantReq.scopes.join(' ');
+    // console.log("GR::", grantReq);
+    return patchClientMetadata(token, grantReq.client_id, clientMetadata );
   })
   .then( resp => {
-    res.json( resp );
+    return updateUserMetaDataGrants(token, ApprovingUser.user_id, RequestingUser.user_id, grantsRequests, grants, grantReq);
+  })
+  .then( resp => {
+    res.json( { "result": "Grant Created" });
   })
   .catch(next);
 });
